@@ -1,6 +1,20 @@
 const turndown = require('turndown');
 const turndownPluginGfm = require('turndown-plugin-gfm');
 
+// extract youtube embeds and convert them to markdown embeds
+function extractYoutubeVideoId(url) {
+    try {
+        if (url.includes('watch?v=')) {
+            return url.split('watch?v=')[1].split('&')[0];
+        } else if (url.includes('youtu.be/')) {
+            return url.split('youtu.be/')[1].split('?')[0];
+        }
+        return '';
+    } catch (error) {
+        return '';
+    }
+}
+
 function initTurndownService() {
 	const turndownService = new turndown({
 		headingStyle: 'atx',
@@ -91,6 +105,56 @@ function initTurndownService() {
 		}
 	});
 
+	// Custom rule for WordPress table figures
+	turndownService.addRule('wpBlockTable', {
+		filter: function (node) {
+			return (
+				node.nodeName === 'FIGURE' &&
+				node.classList.contains('wp-block-table')
+			);
+		},
+		replacement: function (content, node) {
+			// Find the <table> element inside the figure.
+			const table = node.querySelector('table');
+			let tableMarkdown = '';
+			if (table) {
+				// Convert the table HTML using the current Turndown service.
+				tableMarkdown = turndownService.turndown(table.outerHTML);
+			}
+			// Optionally add a caption if a figcaption exists.
+			const figcaption = node.querySelector('figcaption');
+			if (figcaption) {
+				const captionMarkdown = turndownService.turndown(figcaption.outerHTML);
+				// You might choose to simply append the caption as a paragraph.
+				return tableMarkdown + '\n\n' + captionMarkdown;
+			}
+			return tableMarkdown;
+		}
+	});
+
+	
+	// Custom rule for WordPress YouTube embeds
+	turndownService.addRule('wpEmbedYoutube', {
+		filter: function(node) {
+			return (
+				node.nodeName === 'FIGURE' &&
+				node.classList.contains('wp-block-embed-youtube')
+			);
+		},
+		replacement: function(content, node) {
+			const wrapper = node.querySelector('.wp-block-embed__wrapper');
+			if (wrapper) {
+				const url = wrapper.textContent.trim();
+				const videoId = extractYoutubeVideoId(url);
+				if (videoId) {
+					return '\n\n<iframe width="560" height="315" src="https://www.youtube.com/embed/' +
+						videoId +
+						'" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>\n\n';
+				}
+			}
+			return content;
+		}
+	});
 	return turndownService;
 }
 
