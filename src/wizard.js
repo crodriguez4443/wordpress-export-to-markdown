@@ -162,7 +162,7 @@ function parseCommandLine(argv) {
 		.name('node index.js')
 		.version('v' + package.version, '-v, --version', 'Display version number')
 		.helpOption('-h, --help', 'See the thing you\'re looking at right now')
-		.addHelpText('after', '\nMore documentation is at https://github.com/lonekorean/wordpress-export-to-markdown');
+		// .addHelpText('after', '\nMore documentation is at https://github.com/lonekorean/wordpress-export-to-markdown');
 
 	options.forEach(input => {
 		const flag = '--' + input.name + ' <' + input.type + '>';
